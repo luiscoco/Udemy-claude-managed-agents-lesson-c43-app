@@ -42,26 +42,67 @@ CLAUDE_MANAGED_ENVIRONMENT_ID=your_environment_id
 PORT=3043
 ```
 
-## How the application was developed
+## How the app was build
 
-The browser collects inputs; the Node host validates requests; the lesson implementation produces observable evidence. The architecture page walks through the real source with numbered steps, prerequisite configuration, source filenames and code excerpts.
+### 1. Bind an export to independently reviewed bytes
 
-### Lesson implementation
+The approved content hash is derived from a fixed source fixture, rather than instructions found in the untrusted checkout itself.
 
-[src/lesson.ts](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c43-app/blob/main/src/lesson.ts)
+Source: [src/lesson.ts](src/lesson.ts#L13)
 
 ```typescript
-  async run(input) {
-
-const path=text(input,"path"),bytes=text(input,"content"),expected=hash("export const value = 1;");
-const verified=safePath(path)&&path==="src/main.ts"&&!flag(input,"symlink")&&hash(bytes)===expected;
-return report(verified?"passed":"rejected",verified?"Export bytes match the reviewed host manifest":"Unreviewed path, link, or changed content",{verified,actualHash:hash(bytes),expectedHash:expected,executed:false},["Use an independently reviewed manifest","Reject metadata and links","Compare exact file identity","Never auto-promote checkout instructions"]);
-
-  }
-};
+const path = text(input, "path"),
+  bytes = text(input, "content"),
+  expected = hash("export const value = 1;");
 ```
 
-Read the architecture page for the remaining source excerpts and explanations, including input handling and optional provider behavior. The diagram describes this application, rather than implying that an external integration has been implemented.
+### 2. Reject changed paths, links and contents
+
+The path, symlink flag and content hash must all satisfy the reviewed manifest. executed:false keeps matching identity separate from permission to execute the code or trust its instructions.
+
+Source: [src/lesson.ts](src/lesson.ts#L14) · selected statements
+
+```typescript
+const verified =
+  safePath(path) &&
+  path === "src/main.ts" &&
+  !flag(input, "symlink") &&
+  hash(bytes) === expected;
+
+return report(
+  verified ? "passed" : "rejected",
+  verified
+    ? "Export bytes match the reviewed host manifest"
+    : "Unreviewed path, link, or changed content",
+  { verified, actualHash: hash(bytes), expectedHash: expected, executed: false },
+  [
+    "Use an independently reviewed manifest",
+    "Reject metadata and links",
+    "Compare exact file identity",
+    "Never auto-promote checkout instructions",
+  ],
+);
+```
+
+### Check your understanding
+
+Run **Verify a reviewed export** in the application. Compare the result with these scenario expectations:
+
+```json
+{
+  "input": {
+    "path": "src/main.ts",
+    "content": "export const value = 1;",
+    "symlink": false
+  },
+  "expectedOutcome": "passed",
+  "checkEvidence": {
+    "verified": true
+  }
+}
+```
+
+Then try **Reject changed source bytes**. Its expected outcome is `rejected`; identify the condition or evidence field that explains the difference.
 
 ## Validation
 
