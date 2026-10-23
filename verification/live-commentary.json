@@ -1,0 +1,28 @@
+{
+  "source": "live-provider-commentary",
+  "sessionId": "sesn_01YPMJdzF9oE63rGWVsZxbsn",
+  "answer": "This teaching experiment, \"Trusted Configuration and Untrusted Checkouts,\" demonstrates a local hash-comparison exercise where export bytes are verified against a reviewed host manifest. The evidence shows matching hashes (`fcbcb7...`) with `executed: false`, meaning no tool or process actually ran \u2014 it is purely illustrative local data. The lesson is that trusted configuration must be kept separate from untrusted checkout instructions, which should never be auto-promoted to trusted status.",
+  "stopReason": "end_turn",
+  "eventTypes": [
+    "session.status_running",
+    "session.thread_status_running",
+    "user.message",
+    "span.model_request_start",
+    "agent.message",
+    "span.model_request_end",
+    "session.thread_status_idle",
+    "session.usage",
+    "session.status_idle"
+  ],
+  "requestUsage": [
+    {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 662,
+      "output_tokens": 102,
+      "speed": "standard"
+    }
+  ],
+  "experimentHash": "8c57e8053a8d633ec1dca416d6bc7f64637e86ddd0056ded99ca6db3b3d9d341",
+  "scope": "A real text-only model response about the local experiment. External integrations and the experiment's correctness are not certified by this response."
+}

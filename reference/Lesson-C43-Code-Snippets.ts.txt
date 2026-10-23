@@ -1,0 +1,40 @@
+// Verify a reviewed, bounded source export. Not a malware or injection scanner.
+import { createHash } from "node:crypto";
+export type Entry = { relativePath: string; kind: "file" | "symlink"; bytes: Uint8Array };
+export type Manifest = { reviewedCommit: string; files: ReadonlyMap<string, string> };
+export const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+const CONTROL_NAMES = new Set([".git", ".env", ".claude", ".agents", "claude.md", "agents.md", ".mcp.json"]);
+export function allowedExportPath(value: string) {
+  const parts = value.split("/");
+  return value.length > 0 && value.length <= 240 && !value.includes("\\") &&
+    parts.every(p => /^[A-Za-z0-9_.-]+$/.test(p) && p !== "." && p !== ".." &&
+      !CONTROL_NAMES.has(p.toLowerCase()) && !p.toLowerCase().startsWith(".env."));
+}
+export function verifyExport(entries: readonly Entry[], approved: Manifest) {
+  if (!/^[a-f0-9]{40,64}$/.test(approved.reviewedCommit)) throw new Error("Missing reviewed provenance");
+  if (!entries.length || entries.length > 100 || entries.length !== approved.files.size)
+    throw new Error("Unexpected inventory");
+  const seen = new Set<string>(); const result = new Map<string, Uint8Array>();
+  let total = 0;
+  for (const entry of entries) {
+    const folded = entry.relativePath.toLowerCase();
+    if (entry.kind !== "file" || !allowedExportPath(entry.relativePath) || seen.has(folded))
+      throw new Error("Invalid, linked or colliding export path");
+    seen.add(folded);
+    total += entry.bytes.byteLength;
+    if (total > 2 * 1024 * 1024) throw new Error("Export too large");
+    const expected = approved.files.get(entry.relativePath);
+    if (!expected || !/^[a-f0-9]{64}$/.test(expected) || sha256(entry.bytes) !== expected)
+      throw new Error("Unreviewed or changed file");
+    result.set(entry.relativePath, Uint8Array.from(entry.bytes));
+  }
+  return { reviewedCommit: approved.reviewedCommit, files: result,
+    injectionSafety: "not_established" as const };
+}
+// The manifest must come from independent host review, not the checkout itself.
+// A Git checkout normally contains .git. This helper accepts an explicitly
+// exported inventory with repository metadata omitted, not a raw Git worktree.
+// Do not execute install scripts, import repository config, auto-load skills or
+// promote README instructions to system authority while inspecting the export.
+// Hash equality identifies reviewed bytes, not harmless semantics. No shell,
+// Git command, file discovery, dynamic import or remote deployment occurs here.
